@@ -80,12 +80,21 @@ var imgs = {
         
         return get(0, 0, 50, 50);
     },
+    cloud: function() {
+        fill(215, 223, 242);
+        ellipse(15, 25, 30, 30);
+        ellipse(35, 20, 40, 40);
+        ellipse(55, 25, 30, 30);
+        rect(15, 25, 40, 15);
+        
+        return get(0, 0, 300, 200);
+    },
     load: function(img) {
         background(0, 0, 0, 0);
         this[img] = this[img]();
     }
 };
-var tl = ["ground", "torso", "scarf", "torso_red", "scarf_red"];
+var tl = ["ground", "torso", "scarf", "torso_red", "scarf_red", "cloud"];
 var t = 0;
 
 var loadingScreen = function(v, m, t) {
@@ -262,6 +271,8 @@ var draw_player = function(p, tt, st, r) {
 };
 
 draw = function() {
+    smooth();
+    
     if (t < tl.length) {
         imgs.load(tl[t]);
         t+=1;
@@ -306,6 +317,11 @@ draw = function() {
         parts[i].draw();
         if (parts[i].delete()) { parts.splice(i, 1); }
     }
+    
+    image(imgs.cloud, 59, 82);
+    image(imgs.cloud, 251, 39);
+    image(imgs.cloud, 479, 126);
+    image(imgs.cloud, 309, 145);
     
     image(imgs.ground, 0, 0);
     image(imgs.ground, 300, 0);

@@ -1,0 +1,338 @@
+/** Recent update: [7th April]
+ *  - Added enemy
+ *  - Aiming arrow
+ *  - Bug fixes (2)
+**/
+
+var keys = [];
+keyPressed = function() { keys[keyCode] = true; };
+keyReleased = function() { keys[keyCode] = false; };
+var press = false;
+var pressed = false;
+mousePressed = function() { press = true; };
+mouseReleased = function() { 
+    press = false; 
+    pressed = false;
+};
+
+var inbetween = function(num1, num2) {
+    return num1+(num2-num1)/2;
+};
+var pm = function(x, y, r) {
+    pushMatrix();
+    translate(x, y);
+    rotate(r);
+};
+
+noStroke();
+var imgs = {
+    ground: function() {
+        fill(220, 244, 250);
+        beginShape();
+        vertex(0, 356);
+        vertex(95, 358);
+        vertex(138, 352);
+        vertex(161, 355);
+        vertex(200, 353);
+        vertex(290, 358);
+        vertex(300, 356);
+        vertex(300, 374);
+        vertex(0, 374);
+        endShape(CLOSE);
+        
+        return get(0, 0, 301, 400);
+    },
+    torso: function() {
+        fill(39, 102, 209);
+        rect(0, 0, 25, 6, 3);
+        rect(0, 6, 25, 6, 3);
+        rect(0, 12, 25, 6, 3);
+        rect(0, 18, 25, 6, 5);
+        fill(45, 172, 194);
+        triangle(7, 0, 18, 0, inbetween(7, 18), 7);
+        
+        return get(0, 0, 50, 50);
+    },
+    scarf: function() {
+        fill(67, 140, 204);
+        rect(0, 0, 18, 2, 7);
+        rect(0, 2, 18, 2, 6);
+        rect(10, 0, 6, 12, 4);
+        
+        return get(0, 0, 50, 50);
+    },
+    torso_red: function() {
+        fill(230, 64, 14);
+        rect(0, 0, 25, 6, 3);
+        rect(0, 6, 25, 6, 3);
+        rect(0, 12, 25, 6, 3);
+        rect(0, 18, 25, 6, 5);
+        fill(255, 51, 0);
+        triangle(7, 0, 18, 0, inbetween(7, 18), 7);
+        
+        return get(0, 0, 50, 50);
+    },
+    scarf_red: function() {
+        fill(255, 145, 0);
+        rect(0, 0, 18, 2, 7);
+        rect(0, 2, 18, 2, 6);
+        rect(10, 0, 6, 12, 4);
+        
+        return get(0, 0, 50, 50);
+    },
+    load: function(img) {
+        background(0, 0, 0, 0);
+        this[img] = this[img]();
+    }
+};
+var tl = ["ground", "torso", "scarf", "torso_red", "scarf_red"];
+var t = 0;
+
+var loadingScreen = function(v, m, t) {
+    noStroke();
+    textAlign(CENTER, CENTER);
+    textFont(createFont("Trebuchet MS"), 20);
+    fill(0);
+    rect(0, 0, width, height);
+    fill(255);
+    text(floor(v/m*100)+"%", width/2, height/2-30);
+    text("\""+t+"\"", width/2, height/2+30);
+    rect(width/2-52, height/2-3, 104, 6);
+    fill(0);
+    rect(width/2-50, height/2-1, floor(v/m*100), 2);
+};
+
+var p1 = {
+    x: 30, y: 300,
+    xs: 0, ys: 0,
+    lx: 0, lxn: 0,
+    jump: false,
+    cd: 50, am: 3,
+    pc: 0,
+};
+var p2 = {
+    x: 570, y: 300,
+    xs: 0, ys: 0,
+    lx: 0, lxn: 0,
+    jump: false,
+    cd: 50, am: 3,
+    pc: 0, r: 0,
+    hp: 3,
+};
+
+var block = function(config) {
+    this.x = config.x;
+    this.y = config.y;
+    this.w = config.w;
+    this.h = config.h;
+};
+block.prototype.draw = function() {
+    fill(206, 229, 245);
+    rect(this.x, this.y, this.w, this.h, 5);
+    
+    if (p1.x+12 > this.x && p1.y < this.y+this.h && p1.y > this.y+3 && p1.x < this.x+3) { p1.x = this.x-12; }
+    if (p1.x-12 < this.x+this.w && p1.y < this.y+this.h && p1.y > this.y+3 && p1.x-12 > this.x+this.w-3) { p1.x = this.x+this.w+12; }
+    if (p1.y+6 > this.y && p1.x+12 > this.x+3 && p1.x-12 < this.x+this.w-3 && p1.y+6 < this.y+6) { 
+        p1.y = this.y-6; 
+        p1.jump = false;
+        p1.ys = 0;
+    }
+};
+var blocks = [];
+
+var snowball = function(config) {
+    this.x = config.x;
+    this.y = config.y;
+    this.xs = config.xs;
+    this.ys = config.ys;
+};
+snowball.prototype.draw = function() {
+    fill(206, 229, 245);
+    ellipse(this.x, this.y, 12, 12);
+    
+    this.x+=this.xs;
+    this.y+=this.ys;
+    this.ys+=0.3;
+};
+snowball.prototype.delete = function() {
+    for (var a = 0; a < blocks.length; a++) {
+        if (this.x > blocks[a].x-6 && this.y > blocks[a].y-6 && this.x < blocks[a].x+blocks[a].w+6 && this.y < blocks[a].y+blocks[a].h+6) { return 1; }
+    }
+    if (this.y > 355) { return 2; }
+    if (this.x > p2.x-10 && this.x < p2.x+10 && this.y < p2.y && this.y > p2.y-55) { return 3; }
+};
+var snowballs = [];
+
+var part = function(config) {
+    this.x = config.x;
+    this.y = config.y;
+    this.s = config.s;
+    this.xs = config.xs;
+    this.ys = config.ys;
+};
+part.prototype.draw = function() {
+    fill(206, 229, 245);
+    ellipse(this.x, this.y, this.s, this.s);
+    
+    this.x+=this.xs;
+    this.y+=this.ys;
+    this.ys+=0.3;
+};
+part.prototype.delete = function() {
+    return this.y > 390;
+};
+var parts = [];
+
+var movement = function(p) {
+    if (keys[LEFT] || keys[RIGHT]) {
+        if (p.lx <= -6 || p.lx === 0 && p.lxn === 0) { p.lxn = 6; }
+        if (p.lx >= 6) { p.lxn = -6; }
+    } else { p.lxn = 0; }
+    if (keys[LEFT]) { p.xs = -2; } else if (keys[RIGHT]) { p.xs = 2; } else { p.xs = 0; }
+    if (keys[UP] && !p.jump) {
+        p.ys = -4;
+        p.jump = true;
+    }
+    
+    if (p.lx > p.lxn) { p.lx-=0.5; }
+    if (p.lx < p.lxn) { p.lx+=0.5; }
+    p.x += p.xs;
+    p.y += p.ys;
+    if (p.y < 353) { p.ys+=0.3; } else { 
+        if (p.ys !== 0) {
+            for (var ps = 0; ps < floor(random(3, 7)); ps++) {
+                parts.push( new part({
+                    x: p.x, y: p.y, s: random(2, 6),
+                    xs: random(-2, 2), ys: random(-2.5, -0.3),
+                }));
+            }
+        }
+        p.ys = 0; 
+        p.jump = false;
+    }
+    
+    if (press && !pressed && p.cd <= 0 && p.am > 0 && mouseButton !== RIGHT && p.pc <= 0) {
+        snowballs.push( new snowball({
+            x: p.x, y: p.y-32,
+            xs: cos(atan2(mouseY-p.y+32, mouseX-p.x))*10,
+            ys: sin(atan2(mouseY-p.y+32, mouseX-p.x))*10,
+        }));
+        p.cd = 50;
+        p.am--;
+        pressed = true;
+    }
+    if (press && mouseButton === RIGHT && p.am < 5 && p.pc <= 0) {
+        p.pc = 100;
+    }
+    p.cd--;
+    p.pc--;
+    if (p.pc === 0) { p.am++; }
+    if (p.pc > 0 && frameCount%10 > 8) {
+        parts.push( new part({
+            x: p.x+10, y: p.y-28, s: random(2, 6),
+            xs: random(-2, 2), ys: random(-4, 2),
+        }));
+    }
+};
+var AI_movement = function(p) {
+    
+};
+
+var draw_player = function(p, tt, st, r) {
+    stroke(17, 75, 138);
+    strokeWeight(10);
+    line(p.x-6, p.y-10, p.x-6-p.lx, p.y+3);
+    line(p.x+4, p.y-10, p.x+4+p.lx, p.y+3);
+    image(tt, p.x-13, p.y-35);
+    fill(201, 201, 149);
+    noStroke();
+    ellipse(p.x, p.y-43, 18, 18);
+    image(st, p.x-9, p.y-37);
+    fill(0);
+    ellipse(p.x-3+p.xs, p.y-43+p.ys/2, 4, 4);
+    ellipse(p.x+3+p.xs, p.y-43+p.ys/2, 4, 4);
+    if (p.pc > 0) {
+        fill(171, 230, 237);
+        ellipse(p.x+10, p.y-27, (100-p.pc)/9, (100-p.pc)/9);
+    }
+    pm(p.x, p.y-32, r);
+    fill(255, 150);
+    triangle(30, 0, 20, -7, 20, 7);
+    popMatrix();
+};
+
+draw = function() {
+    if (t < tl.length) {
+        imgs.load(tl[t]);
+        t+=1;
+        
+        loadingScreen(t, tl.length, tl[t-1]);
+        
+        return;
+    }
+    
+    background(56, 185, 255); //56, 185, 255
+    
+    draw_player(p1, imgs.torso, imgs.scarf, atan2(mouseY-p1.y+32, mouseX-p1.x));
+    draw_player(p2, imgs.torso_red, imgs.scarf_red, p2.r);
+    
+    fill(255);
+    for (var i = 0; i < p2.am; i++) { ellipse(p2.x+(i*10)-10, p2.y-60, 5, 5); }
+    rect(p2.x-15, p2.y-56, 30, 2);
+    fill(255, 0, 0);
+    rect(p2.x-15, p2.y-56, p2.hp*10, 2);
+
+    noStroke();
+    for (var i in blocks) {
+        var b = blocks[i];
+        b.draw();
+    }
+    for (var i in snowballs) {
+        var s = snowballs[i];
+        s.draw();
+        if (s.delete() > 0) { 
+            for (var d = 0; d < floor(random(4, 8)); d++) {
+                parts.push( new part({
+                    x: s.x, y: s.y,
+                    s: random(3, 6),
+                    xs: random(-4, 4), ys: random(-4, -1)
+                }));
+            }
+            if (s.delete() === 3) { p2.hp--; }
+            snowballs.splice(i, 1); 
+        }
+    }
+    for (var i in parts) {
+        parts[i].draw();
+        if (parts[i].delete()) { parts.splice(i, 1); }
+    }
+    
+    image(imgs.ground, 0, 0);
+    image(imgs.ground, 300, 0);
+    fill(220, 244, 250);
+    rect(0, 374, 600, 27);
+    
+    fill(230);
+    rect(5, 5, 104, 12);
+    fill(117, 149, 209);
+    rect(7, 7, constrain(p1.cd*2, 0, 100), 8);
+    fill(255);
+    for (var i = 0; i < p1.am; i++) { 
+        ellipse(14+i*21, 28, 12, 12); 
+    }
+    noFill();
+    stroke(255);
+    strokeWeight(3);
+    if (p1.pc > 0) { arc(14+p1.am*21, 28, 10, 10, -90, p1.pc*3.6-90); }
+    
+    movement(p1);
+};
+
+blocks.push(new block({
+    x: 110, y: 330, 
+    w: 30, h: 40
+}));
+blocks.push(new block({
+    x: 272, y: 342, 
+    w: 50, h: 60
+}));

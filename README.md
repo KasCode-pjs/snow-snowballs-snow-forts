@@ -11,3 +11,7 @@ The game so far includes:
  - Walls and collisions
  - OOD snowballs and walls
  - Enemy prototype
+
+ ## Recently added:
+ - Gravity + movement code for AI
+ - Throw power

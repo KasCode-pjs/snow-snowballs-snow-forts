@@ -10,8 +10,8 @@ keyReleased = function() { keys[keyCode] = false; };
 var press = false;
 var pressed = false;
 mousePressed = function() { press = true; };
-mouseReleased = function() { 
-    press = false; 
+mouseReleased = function() {
+    press = false;
     pressed = false;
 };
 
@@ -39,7 +39,7 @@ var imgs = {
         vertex(300, 374);
         vertex(0, 374);
         endShape(CLOSE);
-        
+
         return get(0, 0, 301, 400);
     },
     torso: function() {
@@ -50,7 +50,7 @@ var imgs = {
         rect(0, 18, 25, 6, 5);
         fill(45, 172, 194);
         triangle(7, 0, 18, 0, inbetween(7, 18), 7);
-        
+
         return get(0, 0, 50, 50);
     },
     scarf: function() {
@@ -58,7 +58,7 @@ var imgs = {
         rect(0, 0, 18, 2, 7);
         rect(0, 2, 18, 2, 6);
         rect(10, 0, 6, 12, 4);
-        
+
         return get(0, 0, 50, 50);
     },
     torso_red: function() {
@@ -69,7 +69,7 @@ var imgs = {
         rect(0, 18, 25, 6, 5);
         fill(255, 51, 0);
         triangle(7, 0, 18, 0, inbetween(7, 18), 7);
-        
+
         return get(0, 0, 50, 50);
     },
     scarf_red: function() {
@@ -77,7 +77,7 @@ var imgs = {
         rect(0, 0, 18, 2, 7);
         rect(0, 2, 18, 2, 6);
         rect(10, 0, 6, 12, 4);
-        
+
         return get(0, 0, 50, 50);
     },
     cloud: function() {
@@ -86,7 +86,7 @@ var imgs = {
         ellipse(35, 20, 40, 40);
         ellipse(55, 25, 30, 30);
         rect(15, 25, 40, 15);
-        
+
         return get(0, 0, 300, 200);
     },
     load: function(img) {
@@ -118,6 +118,7 @@ var p1 = {
     jump: false,
     cd: 50, am: 3,
     pc: 0,
+    pw: 0,
 };
 var p2 = {
     x: 570, y: 300,
@@ -138,11 +139,11 @@ var block = function(config) {
 block.prototype.draw = function() {
     fill(206, 229, 245);
     rect(this.x, this.y, this.w, this.h, 5);
-    
+
     if (p1.x+12 > this.x && p1.y < this.y+this.h && p1.y > this.y+3 && p1.x < this.x+3) { p1.x = this.x-12; }
     if (p1.x-12 < this.x+this.w && p1.y < this.y+this.h && p1.y > this.y+3 && p1.x-12 > this.x+this.w-3) { p1.x = this.x+this.w+12; }
-    if (p1.y+6 > this.y && p1.x+12 > this.x+3 && p1.x-12 < this.x+this.w-3 && p1.y+6 < this.y+6) { 
-        p1.y = this.y-6; 
+    if (p1.y+6 > this.y && p1.x+12 > this.x+3 && p1.x-12 < this.x+this.w-3 && p1.y+6 < this.y+6) {
+        p1.y = this.y-6;
         p1.jump = false;
         p1.ys = 0;
     }
@@ -158,7 +159,7 @@ var snowball = function(config) {
 snowball.prototype.draw = function() {
     fill(206, 229, 245);
     ellipse(this.x, this.y, 12, 12);
-    
+
     this.x+=this.xs;
     this.y+=this.ys;
     this.ys+=0.3;
@@ -182,7 +183,7 @@ var part = function(config) {
 part.prototype.draw = function() {
     fill(206, 229, 245);
     ellipse(this.x, this.y, this.s, this.s);
-    
+
     this.x+=this.xs;
     this.y+=this.ys;
     this.ys+=0.3;
@@ -202,12 +203,12 @@ var movement = function(p) {
         p.ys = -4;
         p.jump = true;
     }
-    
+
     if (p.lx > p.lxn) { p.lx-=0.5; }
     if (p.lx < p.lxn) { p.lx+=0.5; }
     p.x += p.xs;
     p.y += p.ys;
-    if (p.y < 353) { p.ys+=0.3; } else { 
+    if (p.y < 353) { p.ys+=0.3; } else {
         if (p.ys !== 0) {
             for (var ps = 0; ps < floor(random(3, 7)); ps++) {
                 parts.push( new part({
@@ -216,19 +217,21 @@ var movement = function(p) {
                 }));
             }
         }
-        p.ys = 0; 
+        p.ys = 0;
         p.jump = false;
     }
-    
-    if (press && !pressed && p.cd <= 0 && p.am > 0 && mouseButton !== RIGHT && p.pc <= 0) {
+
+    if (press && p.pw < 100 && p.am > 0 && mouseButton !== RIGHT) { p.pw+=2; }
+
+    if (!press && p.pw > 0 && p.cd <= 0 && p.am > 0 && p.pc <= 0) {
         snowballs.push( new snowball({
             x: p.x, y: p.y-32,
-            xs: cos(atan2(mouseY-p.y+32, mouseX-p.x))*10,
-            ys: sin(atan2(mouseY-p.y+32, mouseX-p.x))*10,
+            xs: cos(atan2(mouseY-p.y+32, mouseX-p.x))*p.pw/7,
+            ys: sin(atan2(mouseY-p.y+32, mouseX-p.x))*p.pw/7,
         }));
         p.cd = 50;
         p.am--;
-        pressed = true;
+        p.pw = 0;
     }
     if (press && mouseButton === RIGHT && p.am < 5 && p.pc <= 0) {
         p.pc = 100;
@@ -244,7 +247,20 @@ var movement = function(p) {
     }
 };
 var AI_movement = function(p) {
-    
+    if (p.y < 353) { p.ys+=0.3; } else {
+        if (p.ys !== 0) {
+            for (var ps = 0; ps < floor(random(3, 7)); ps++) {
+                parts.push( new part({
+                    x: p.x, y: p.y, s: random(2, 6),
+                    xs: random(-2, 2), ys: random(-2.5, -0.3),
+                }));
+            }
+        }
+        p.ys = 0;
+    }
+
+    p.x+=p.xs;
+    p.y+=p.ys;
 };
 
 var draw_player = function(p, tt, st, r) {
@@ -272,21 +288,21 @@ var draw_player = function(p, tt, st, r) {
 
 draw = function() {
     smooth();
-    
+
     if (t < tl.length) {
         imgs.load(tl[t]);
         t+=1;
-        
+
         loadingScreen(t, tl.length, tl[t-1]);
-        
+
         return;
     }
-    
+
     background(56, 185, 255); //56, 185, 255
-    
+
     draw_player(p1, imgs.torso, imgs.scarf, atan2(mouseY-p1.y+32, mouseX-p1.x));
     draw_player(p2, imgs.torso_red, imgs.scarf_red, p2.r);
-    
+
     fill(255);
     for (var i = 0; i < p2.am; i++) { ellipse(p2.x+(i*10)-10, p2.y-60, 5, 5); }
     rect(p2.x-15, p2.y-56, 30, 2);
@@ -301,7 +317,7 @@ draw = function() {
     for (var i in snowballs) {
         var s = snowballs[i];
         s.draw();
-        if (s.delete() > 0) { 
+        if (s.delete() > 0) {
             for (var d = 0; d < floor(random(4, 8)); d++) {
                 parts.push( new part({
                     x: s.x, y: s.y,
@@ -310,45 +326,49 @@ draw = function() {
                 }));
             }
             if (s.delete() === 3) { p2.hp--; }
-            snowballs.splice(i, 1); 
+            snowballs.splice(i, 1);
         }
     }
     for (var i in parts) {
         parts[i].draw();
         if (parts[i].delete()) { parts.splice(i, 1); }
     }
-    
+
     image(imgs.cloud, 59, 82);
     image(imgs.cloud, 251, 39);
     image(imgs.cloud, 479, 126);
     image(imgs.cloud, 309, 145);
-    
+
     image(imgs.ground, 0, 0);
     image(imgs.ground, 300, 0);
     fill(220, 244, 250);
     rect(0, 374, 600, 27);
-    
+
     fill(230);
     rect(5, 5, 104, 12);
+    if (p1.pw > 0) { rect(115, 5, 54, 12); }
     fill(117, 149, 209);
     rect(7, 7, constrain(p1.cd*2, 0, 100), 8);
+    fill(255, 81, 0);
+    rect(117, 7, p1.pw/2, 8);
     fill(255);
-    for (var i = 0; i < p1.am; i++) { 
-        ellipse(14+i*21, 28, 12, 12); 
+    for (var i = 0; i < p1.am; i++) {
+        ellipse(14+i*21, 28, 12, 12);
     }
     noFill();
     stroke(255);
     strokeWeight(3);
     if (p1.pc > 0) { arc(14+p1.am*21, 28, 10, 10, -90, p1.pc*3.6-90); }
-    
+
     movement(p1);
+    AI_movement(p2);
 };
 
 blocks.push(new block({
-    x: 110, y: 330, 
+    x: 110, y: 330,
     w: 30, h: 40
 }));
 blocks.push(new block({
-    x: 272, y: 342, 
+    x: 272, y: 342,
     w: 50, h: 60
 }));

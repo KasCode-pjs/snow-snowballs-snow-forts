@@ -118,7 +118,7 @@ var p1 = {
     lx: 0, lxn: 0,
     jump: false,
     cd: 50, am: 3,
-    pc: 0,
+    pc: 0, bt: 0,
     pw: 0,
 };
 var p2 = {
@@ -141,14 +141,9 @@ var block = function(config) {
 block.prototype.draw = function() {
     fill(206, 229, 245);
     rect(this.x, this.y, this.w, this.h, 5);
-
-    if (p1.x+12 > this.x && p1.y < this.y+this.h && p1.y > this.y+3 && p1.x < this.x+3) { p1.x = this.x-12; }
-    if (p1.x-12 < this.x+this.w && p1.y < this.y+this.h && p1.y > this.y+3 && p1.x-12 > this.x+this.w-3) { p1.x = this.x+this.w+12; }
-    if (p1.y+6 > this.y && p1.x+12 > this.x+3 && p1.x-12 < this.x+this.w-3 && p1.y+6 < this.y+6) {
-        p1.y = this.y-6;
-        p1.jump = false;
-        p1.ys = 0;
-    }
+};
+block.prototype.collide = function(p) {
+    return p.x+12 > this.x && p.x-12 < this.x+this.w && p.y > this.y && p.y-50 < this.y+this.h;
 };
 var blocks = [];
 
@@ -208,8 +203,10 @@ var movement = function(p) {
 
     if (p.lx > p.lxn) { p.lx-=0.5; }
     if (p.lx < p.lxn) { p.lx+=0.5; }
+
     p.x += p.xs;
     p.y += p.ys;
+
     if (p.y < 353) { p.ys+=0.3; } else {
         if (p.ys !== 0) {
             for (var ps = 0; ps < floor(random(3, 7)); ps++) {
@@ -223,7 +220,7 @@ var movement = function(p) {
         p.jump = false;
     }
 
-    if (press && p.pw < 100 && p.am > 0 && mouseButton !== RIGHT) { p.pw+=2; }
+    if (press && p.pw < 100 && p.am > 0 && mouseButton !== RIGHT && build === 0) { p.pw+=2; }
 
     if (!press && p.pw > 0 && p.cd <= 0 && p.am > 0 && p.pc <= 0 && build === 0) {
         snowballs.push( new snowball({
@@ -253,11 +250,25 @@ var movement = function(p) {
         y: p1.y-42+sin(atan2(mouseY-p1.y+32, mouseX-p1.x))*40
     };
     if (keys[70]) {
+        build = 2;
         for (var j = 0; j < blocks.length; j++) {
             var b = blocks[j];
-            if (bpos.y+10 > 346 || bpos.x+20 > b.x && bpos.x < b.x+b.w && bpos.y+20 > b.y && bpos.y < b.y+b.h) { build = 1; } else { build = 2; }
+            if (bpos.y+10 > 346 || bpos.x+20 > b.x && bpos.x < b.x+b.w && bpos.y+20 > b.y && bpos.y < b.y+b.h && p.am > 2) { build = 1; }
         }
-    } else { build = 0; }
+
+        if (press && p.bt < 100 && build === 1) { p.bt+=1; } else { p.bt = 0; }
+        if (p.bt >= 100) {
+            blocks.push(new block({
+                x: bpos.x, y: bpos.y,
+                w: 20, h: 20
+            }));
+            p.am -= 3;
+            p.bt = 0;
+        }
+    } else {
+        build = 0;
+        p.bt = 0;
+    }
 };
 var AI_movement = function(p) {
     if (p.y < 353) { p.ys+=0.3; } else {
@@ -297,6 +308,11 @@ var draw_player = function(p, tt, st, r) {
     fill(255, 150);
     triangle(30, 0, 20, -7, 20, 7);
     popMatrix();
+    noFill();
+    stroke(255, 200);
+    strokeWeight(3);
+    if (p.bt !== undefined && p.bt !== 0) { arc(p.x, p.y-68, 15, 15, -90, (p.bt*3.6)-90); }
+    noStroke();
 };
 
 draw = function() {
@@ -326,6 +342,9 @@ draw = function() {
     for (var i in blocks) {
         var b = blocks[i];
         b.draw();
+        if (b.collide(p1)) {
+        }
+        b.collide(p2);
     }
     for (var i in snowballs) {
         var s = snowballs[i];
@@ -380,6 +399,9 @@ draw = function() {
 
     movement(p1);
     AI_movement(p2);
+
+    fill(255, 0, 0);
+    ellipse(p1.x, p1.y-52, 5, 5);
 };
 
 blocks.push(new block({

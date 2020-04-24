@@ -1,7 +1,8 @@
-/** Recent update: [7th April]
- *  - Added enemy
- *  - Aiming arrow
- *  - Bug fixes (2)
+/** Recent update: [23rd April]
+ *  - Added enemy gravity
+ *  - Throw power
+ *  - Building prototype
+ *  - Clouds
 **/
 
 var keys = [];
@@ -129,6 +130,7 @@ var p2 = {
     pc: 0, r: 0,
     hp: 3,
 };
+var build = false;
 
 var block = function(config) {
     this.x = config.x;
@@ -194,12 +196,12 @@ part.prototype.delete = function() {
 var parts = [];
 
 var movement = function(p) {
-    if (keys[LEFT] || keys[RIGHT]) {
+    if (keys[LEFT] || keys[RIGHT] || keys[65] || keys[68]) {
         if (p.lx <= -6 || p.lx === 0 && p.lxn === 0) { p.lxn = 6; }
         if (p.lx >= 6) { p.lxn = -6; }
     } else { p.lxn = 0; }
-    if (keys[LEFT]) { p.xs = -2; } else if (keys[RIGHT]) { p.xs = 2; } else { p.xs = 0; }
-    if (keys[UP] && !p.jump) {
+    if (keys[LEFT] || keys[65]) { p.xs = -2; } else if (keys[RIGHT] || keys[68]) { p.xs = 2; } else { p.xs = 0; }
+    if (keys[UP] && !p.jump || keys[87] && !p.jump) {
         p.ys = -4;
         p.jump = true;
     }
@@ -223,7 +225,7 @@ var movement = function(p) {
 
     if (press && p.pw < 100 && p.am > 0 && mouseButton !== RIGHT) { p.pw+=2; }
 
-    if (!press && p.pw > 0 && p.cd <= 0 && p.am > 0 && p.pc <= 0) {
+    if (!press && p.pw > 0 && p.cd <= 0 && p.am > 0 && p.pc <= 0 && build === 0) {
         snowballs.push( new snowball({
             x: p.x, y: p.y-32,
             xs: cos(atan2(mouseY-p.y+32, mouseX-p.x))*p.pw/7,
@@ -245,6 +247,17 @@ var movement = function(p) {
             xs: random(-2, 2), ys: random(-4, 2),
         }));
     }
+
+    var bpos = {
+        x: p1.x-10+cos(atan2(mouseY-p1.y+32, mouseX-p1.x))*40,
+        y: p1.y-42+sin(atan2(mouseY-p1.y+32, mouseX-p1.x))*40
+    };
+    if (keys[70]) {
+        for (var j = 0; j < blocks.length; j++) {
+            var b = blocks[j];
+            if (bpos.y+10 > 346 || bpos.x+20 > b.x && bpos.x < b.x+b.w && bpos.y+20 > b.y && bpos.y < b.y+b.h) { build = 1; } else { build = 2; }
+        }
+    } else { build = 0; }
 };
 var AI_movement = function(p) {
     if (p.y < 353) { p.ys+=0.3; } else {
@@ -343,6 +356,11 @@ draw = function() {
     image(imgs.ground, 300, 0);
     fill(220, 244, 250);
     rect(0, 374, 600, 27);
+
+    if (build > 0) {
+        if (build === 1) { fill(255, 100); } else { fill(255, 0, 0, 100); }
+        rect(p1.x-10+cos(atan2(mouseY-p1.y+32, mouseX-p1.x))*40, p1.y-42+sin(atan2(mouseY-p1.y+32, mouseX-p1.x))*40, 20, 20, 5);
+    }
 
     fill(230);
     rect(5, 5, 104, 12);
